@@ -12,6 +12,9 @@ import numpy as np
 import cv2
 
 from skimage.measure import find_contours
+from skimage.draw import rectangle
+from skimage.segmentation import clear_border
+
 
 from sklearn.metrics import confusion_matrix, roc_curve, auc, roc_auc_score
 
@@ -28,19 +31,59 @@ class PostProcessing:
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
         
         #Opening image t clean it and soften the shapes
-        opening = cv2.morphologyEx(class_image.astype(np.uint8), cv2.MORPH_OPEN, kernel)
+        open_image = cv2.morphologyEx(class_image.astype(np.uint8), cv2.MORPH_OPEN, kernel)
+                
+        #Clear object touching the border of the image
+        border_image = clear_border(open_image)
         
+        #Clear objects that are not intersecting central window of the image
+        [ren, col] = class_image.shape
+
+        mask = np.zeros(class_image.shape, dtype=np.uint8)
+        start = (round(ren/3), round(col/3))
+        end = (round(ren/2+ren/3), round(col/2+col/3))
+        rr, cc = rectangle(start, end=end, shape=mask.shape)
+        mask[rr, cc] = 1
+        
+        #mask_idx = np.where(mask == 1)
+        
+        n_objs, labels = cv2.connectedComponents(border_image)
+        
+        clear_image = np.zeros(class_image.shape, dtype=np.uint8)
+        
+        for label in range(0,n_objs):
+            #Get pixels that belong to the object
+            obj_idx = np.where(np.logical_and((labels == label),(mask == 1)))
+            
+            if obj_idx[0].any():
+                print("True")
+            else:
+                print("False")
+                
+            #xy = np.intersect1d(mask_idx,obj_idx)
+            
+            
+#
+
         #Display original class image and opening
-#        fig = plt.figure()
-#        fig.subplots_adjust(hspace=0.4, wspace=0.4)
-#        
-#        ax = fig.add_subplot(1, 2, 1)
-#        ax.imshow(class_image, cmap="gray")
-#        
-#        ax = fig.add_subplot(1, 2, 2)
-#        ax.imshow(opening, cmap="gray")
+        fig = plt.figure()
+        fig.subplots_adjust(hspace=0.4, wspace=0.4)
         
-        return opening
+        ax = fig.add_subplot(1, 5, 1)
+        ax.imshow(class_image, cmap="gray")
+        
+        ax = fig.add_subplot(1, 5, 2)
+        ax.imshow(open_image, cmap="gray")
+        
+        ax = fig.add_subplot(1, 5, 3)
+        ax.imshow(border_image, cmap="gray")
+        
+        ax = fig.add_subplot(1, 5, 4)
+        ax.imshow(mask, cmap="gray")
+        
+        ax = fig.add_subplot(1, 5, 5)
+        ax.imshow(clear_image, cmap="gray")
+        return open_image
     
     # Get the object regions found in pixel classification   
     def getRegions(self,test_image,class_image,prob_image):
