@@ -128,8 +128,8 @@ for i in range(k):
     #Visualize and evaluate predictions
     post_process = PostProcessing()
     
-    post_process.visualize(test_images,class_images,prob_images,save_path=results_path,fold=i) #LeNet
-#    post_process.visualize(test_images[:,:,:,0],class_images,prob_images,save_path=results_path,fold=i) #UNeT VGG
+    post_process.visualize(test_images,class_images,prob_images,save_path=results_path,fold=i,n_disp=1) #LeNet
+#    post_process.visualize(test_images[:,:,:,0],class_images,prob_images,save_path=results_path,fold=i,n_disp=1) #UNeT VGG
     
     [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks,class_images,save_path=results_path,fold=i) #LeNet
 #   [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks[:,:,:,0],class_images,save_path=results_path,fold=i) #UNeT VGG

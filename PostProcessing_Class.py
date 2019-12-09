@@ -15,8 +15,7 @@ from skimage.measure import find_contours
 from skimage.draw import rectangle
 from skimage.segmentation import clear_border
 
-
-from sklearn.metrics import confusion_matrix, roc_curve, auc, roc_auc_score
+from sklearn.metrics import confusion_matrix, roc_curve, auc
 
 import matplotlib.pyplot as plt
 from matplotlib import patches
@@ -25,10 +24,10 @@ from matplotlib.patches import Polygon
 class PostProcessing:
     
     #Post processing class image
-    def openImage(self,class_image):
+    def postProcessImage(self,class_image):
         
         #Structure for opening
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(15,15))
         
         #Opening image t clean it and soften the shapes
         open_image = cv2.morphologyEx(class_image.astype(np.uint8), cv2.MORPH_OPEN, kernel)
@@ -40,8 +39,8 @@ class PostProcessing:
         [ren, col] = class_image.shape
 
         mask = np.zeros(class_image.shape, dtype=np.uint8)
-        start = (round(ren/3), round(col/3))
-        end = (round(ren/2+ren/3), round(col/2+col/3))
+        start = (round(ren/8), round(col/8))
+        end = (round(ren - ren/8), round(col - col/8))
         rr, cc = rectangle(start, end=end, shape=mask.shape)
         mask[rr, cc] = 1
         
@@ -51,41 +50,38 @@ class PostProcessing:
         
         clear_image = np.zeros(class_image.shape, dtype=np.uint8)
         
-        for label in range(0,n_objs):
+        for label in range(1,n_objs):
             #Get pixels that belong to the object
-            obj_idx = np.where(np.logical_and((labels == label),(mask == 1)))
+            intersection_idx = np.where(np.logical_and((labels == label),(mask == 1)))
             
-            if obj_idx[0].any():
-                print("True")
-            else:
-                print("False")
-                
-            #xy = np.intersect1d(mask_idx,obj_idx)
-            
-            
+            if intersection_idx[0].any():
+                obj_idx = np.where(labels == label)
+                clear_image[obj_idx[0],obj_idx[1]] = 1
+
 #
 
         #Display original class image and opening
-        fig = plt.figure()
-        fig.subplots_adjust(hspace=0.4, wspace=0.4)
+#        fig = plt.figure()
+#        fig.subplots_adjust(hspace=0.4, wspace=0.4)
+#        
+#        ax = fig.add_subplot(1, 5, 1)
+#        ax.imshow(class_image, cmap="gray")
+#        
+#        ax = fig.add_subplot(1, 5, 2)
+#        ax.imshow(open_image, cmap="gray")
+#        
+#        ax = fig.add_subplot(1, 5, 3)
+#        ax.imshow(border_image, cmap="gray")
+#        
+#        ax = fig.add_subplot(1, 5, 4)
+#        ax.imshow(mask, cmap="gray")
+#        
+#        ax = fig.add_subplot(1, 5, 5)
+#        ax.imshow(clear_image, cmap="gray")
         
-        ax = fig.add_subplot(1, 5, 1)
-        ax.imshow(class_image, cmap="gray")
-        
-        ax = fig.add_subplot(1, 5, 2)
-        ax.imshow(open_image, cmap="gray")
-        
-        ax = fig.add_subplot(1, 5, 3)
-        ax.imshow(border_image, cmap="gray")
-        
-        ax = fig.add_subplot(1, 5, 4)
-        ax.imshow(mask, cmap="gray")
-        
-        ax = fig.add_subplot(1, 5, 5)
-        ax.imshow(clear_image, cmap="gray")
-        return open_image
+        return clear_image
     
-    # Get the object regions found in pixel classification   
+    # Get the object regions found in pixel classification    sorted by probability
     def getRegions(self,test_image,class_image,prob_image):
         #Obtain list of all objects found in the binary image
         n_objs, labels = cv2.connectedComponents(class_image)
@@ -123,6 +119,18 @@ class PostProcessing:
             boxes.append([x1, y1, x2, y2])
         
         #plt.show()
+        
+        n_objs -= 1
+        obj_imgs = obj_imgs[1:]
+        probs = probs[1:]
+        boxes = boxes[1:]
+
+        sorted_idx = sorted(range(len(probs)), key=lambda k: probs[k])
+        sorted_idx.reverse()
+        probs = np.array(probs)[sorted_idx]
+        obj_imgs = np.array(obj_imgs)[sorted_idx]
+        boxes = np.array(boxes)[sorted_idx]
+        
         print(probs)
         
         return n_objs, obj_imgs, probs, boxes
@@ -160,11 +168,11 @@ class PostProcessing:
         ax.axis('off')
         
         # Generate random colors
-        colors = self.random_colors(n_objs-1)
+        colors = self.random_colors(n_objs)
         
         #Transform test_image to RGB color (to display objects in different colors)
         masked_img = cv2.cvtColor(test_image.astype(np.float32),cv2.COLOR_GRAY2RGB)
-        for i in range(1, n_objs):
+        for i in range(0, n_objs):
         
             #Get new color for object
             color = colors[i-1]
@@ -205,7 +213,7 @@ class PostProcessing:
         
         return fig
     
-    def visualize(self,test_images,class_images,prob_images,save_path="",fold=0):
+    def visualize(self,test_images,class_images,prob_images,save_path="",fold=0,n_disp=0):
         
         for i in range(len(test_images)):
             
@@ -224,17 +232,21 @@ class PostProcessing:
                 plt.imsave(prob_filename, prob_image, cmap="gray")
         
             #postprocessing open image to filter small objects
-            open_image = self.openImage(class_image)
+            pprocess_image = self.postProcessImage(class_image)
             
             #Save class and probability image
             if save_path != "":
-                open_filename = "open_fold_" + str(fold) + "_" + str(i) + ".jpg"
-                open_filename = os.path.join(save_path,"Open",open_filename)
-                plt.imsave(open_filename, open_image, cmap="gray")
+                pprocess_filename = "pprocess_fold_" + str(fold) + "_" + str(i) + ".jpg"
+                pprocess_filename = os.path.join(save_path,"Open",pprocess_filename)
+                plt.imsave(pprocess_filename, pprocess_image, cmap="gray")
             
             #get image objects 
-            [n_objs, obj_imgs, probs, boxes] = self.getRegions(test_image,open_image,prob_image)
+            [n_objs, obj_imgs, probs, boxes] = self.getRegions(test_image,pprocess_image,prob_image)
             
+            if n_disp!=0:
+                if n_disp<n_objs:
+                    n_objs = n_disp
+        
             #visualize objects
             fig = self.createFig(n_objs, obj_imgs, probs, boxes, test_image)
             
