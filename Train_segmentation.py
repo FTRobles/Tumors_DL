@@ -10,13 +10,13 @@ import math
 
 import numpy as np
 
-from LeNet_Class import LeNet
-from LeNet_Class import DataGen
-from LeNet_Class import ResetKeras
+#from LeNet_Class import LeNet
+#from LeNet_Class import DataGen
+#from LeNet_Class import ResetKeras
 
-#from UNet_Class import UNet
-#from UNet_Class import DataGen
-#from UNet_Class import ResetKeras
+from UNet_Class import UNet
+from UNet_Class import DataGen
+from UNet_Class import ResetKeras
 
 #from VGG_Class import VGG
 #from VGG_Class import DataGen
@@ -50,13 +50,30 @@ def sortedWalk(top, topdown=True, onerror=None):
     if not topdown:
         yield top, dirs, nondirs
 
+
+#%% Define paramenters
+
+#LeNet
+#n_classes = 2
+#size_patch = 28
+
+#UNet
+image_size = 128
+
+#FCN_VGG
+#n_classes = 2
+#image_size = 128
+
+#%% Get Data 
+
 train_path = "../Datos/bus/"
 
 #Get the images file name
 train_ids = next(sortedWalk(train_path))[2]
 
 #Set the data generator parameters
-gen = DataGen(train_ids, train_path)
+gen = DataGen(train_ids, train_path) #LeNet
+gen = DataGen(train_ids, train_path, image_size = image_size) #UNet, VGG
 
 #Read all images and its masks
 [tumor_images, mask_images] = gen.__load_all__()
@@ -67,8 +84,8 @@ n_imgs = len(tumor_images)
 k = 30
 n_test_imgs = math.floor(n_imgs/k)
 
-for i in range(k):
-#for i in range(2):
+#for i in range(k):
+for i in range(2):
     
     fold_start = i*n_test_imgs
     fold_end = fold_start + n_test_imgs - 1
@@ -81,34 +98,21 @@ for i in range(k):
     
     #%% train model
     
-    #Define paramenters
-    
-    #LeNet
-    n_classes = 2
-    size_patch = 28
-    
-    #UNet
-#    image_size = 128
-    
-    #FCN_VGG
-#    n_classes = 2
-#    image_size = 128
-    
-    arch = LeNet()
-#    arch = UNet()
+#    arch = LeNet()
+    arch = UNet()
 #    arch = VGG()
     
     #Create model
-    model = arch.modelArch(size_patch=size_patch, n_classes=n_classes) #LeNet
-#    model = arch.modelArch(image_size=image_size) #UNet
+#    model = arch.modelArch(size_patch=size_patch, n_classes=n_classes) #LeNet
+    model = arch.modelArch(image_size=image_size) #UNet
 #    model = arch.modelArch(n_classes=n_classes, image_size=image_size) #VGG
     
     #compile model
     model = arch.compileModel(model=model)
     
-    #train model
-    model = arch.trainModel(train_images,train_masks,model,size_patch,epochs=100,fold=i) #LeNet
-#    model = arch.trainModel(train_images,train_masks,model,image_size=image_size,fold=i) #UNet, VGG
+#    train model
+#    model = arch.trainModel(train_images,train_masks,model,size_patch,epochs=100,fold=i) #LeNet
+    model = arch.trainModel(train_images,train_masks,model,image_size=image_size,epochs=100,fold=i) #UNet, VGG
 
     
     ResetKeras(model)

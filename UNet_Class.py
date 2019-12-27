@@ -5,16 +5,25 @@ Created on Wed Nov 20 14:06:58 2019
 @author: daewo
 """
 import os
+from datetime import datetime
+import gc
+import imageio
+from random import randint
 
 import numpy as np
+
 import cv2
-from datetime import datetime
+
+import matplotlib.pyplot as plt
 
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.callbacks import TensorBoard
+#from tensorflow.keras.preprocessing.image import ImageDataGenerator 
 
-import gc
+import imgaug as ia
+import imgaug.augmenters as iaa
+from imgaug.augmentables.segmaps import SegmentationMapOnImage
 
 #%% Class to define UNet model architecture, parameters and functions
 class UNet:
@@ -86,7 +95,7 @@ class UNet:
         return model
     
     #Train the defined model
-    def trainModel(self,train_images,train_masks,model,image_size=128,fold=0):
+    def trainModel(self,train_images,train_masks,model,image_size=128,epochs=30,fold=0):
         
         shuffled_indices = np.arange(train_images.shape[0])
         np.random.shuffle(shuffled_indices)
@@ -103,28 +112,50 @@ class UNet:
         validation_tumors = shuffled_tumors[train_samples_count:train_samples_count+validation_samples_count]
         validation_masks = shuffled_masks[train_samples_count:train_samples_count+validation_samples_count]
         
+        # Define our augmentation pipeline.
+        seq = iaa.Sequential([
+#            iaa.Dropout([0.05, 0.2]),      # drop 5% or 20% of all pixels
+#            iaa.Sharpen((0.0, 1.0)),       # sharpen the image
+            iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects segmaps)
+            iaa.Affine(shear=(-45, 45)),
+#            iaa.ElasticTransformation(alpha=50, sigma=5)  # apply water effect (affects segmaps)
+        ], random_order=True)
+    
+        # Augment images and segmaps.
+#        train_images = (train_images*255).astype(np.uint8)
+#        train_masks = train_masks.astype(np.uint8)
+        
+        images_aug = train_images
+        masks_aug = train_masks
+        
+        for i in range(5):
+            images_aug_i, masks_aug_i = seq(images = images_aug, segmentation_maps = masks_aug)
+            train_images = np.concatenate((train_images,images_aug_i),axis=0)
+            train_masks = np.concatenate((train_masks,masks_aug_i),axis=0)   
         
         #defining training paramenters
         #Number of evaluation images used in each batch
         batch_size = round(train_images.shape[0]*0.1)
         
-        #Number of epochs to train
-        epochs = 30
-        
         #Stop when the loss grows instead of diminish
-        early_stopping = tf.keras.callbacks.EarlyStopping(patience=5) #To check overfitting
+#        early_stopping = tf.keras.callbacks.EarlyStopping(patience=5) #To check overfitting
         
         #Tensorboard 
         logdir = os.path.join("..","Resultados","UNet","logs","fit",datetime.now().strftime("%Y%m%d-%H%M%S"))
         tensorboard_callback = TensorBoard(log_dir=logdir)
         
-        #Train the model
-        model.fit(train_images,train_masks,
+        ## Normalizaing 
+        train_images = train_images/255.0
+        train_masks = train_masks/255.0
+        
+#        #Train the model
+        print("Training fold: " + str(fold))   
+        model.fit(train_images, train_masks,
                              batch_size = batch_size,
                              epochs = epochs,
-                             callbacks=[early_stopping,tensorboard_callback],
+                             callbacks=[tensorboard_callback],
                              validation_data = (validation_tumors,validation_masks),
-                             verbose = 1)
+                             verbose = 1)        
         
         train_file = "UNet_Weights_fold_" + str(fold) + ".h5"
         train_dir = os.path.join(self.results_path,"train_weights",train_file)
@@ -137,6 +168,9 @@ class UNet:
     
         prob_images = []
         class_images = []
+        
+        ## Normalizaing 
+        images = images/255
         
         for image in images:
             
@@ -180,10 +214,10 @@ class DataGen(keras.utils.Sequence):
         mask = np.expand_dims(mask, axis=-1)
             
         ## Normalizaing 
-        image = image/255.0
-        mask = mask/255.0
+#        image = image/255.0
+#        mask = mask/255.0
         
-        return image, mask
+        return image.astype(np.uint8), mask.astype(np.uint8)
     
     def __load_all__(self):
         
