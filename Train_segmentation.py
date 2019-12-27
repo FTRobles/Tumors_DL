@@ -84,8 +84,8 @@ n_imgs = len(tumor_images)
 k = 30
 n_test_imgs = math.floor(n_imgs/k)
 
-#for i in range(k):
-for i in range(2):
+for i in range(k):
+#for i in range(2):
     
     fold_start = i*n_test_imgs
     fold_end = fold_start + n_test_imgs - 1
