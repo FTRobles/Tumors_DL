@@ -14,13 +14,13 @@ import numpy as np
 #from LeNet_Class import DataGen
 #from LeNet_Class import ResetKeras
 
-from UNet_Class import UNet
-from UNet_Class import DataGen
-from UNet_Class import ResetKeras
+#from UNet_Class import UNet
+#from UNet_Class import DataGen
+#from UNet_Class import ResetKeras
 
-#from VGG_Class import VGG
-#from VGG_Class import DataGen
-#from VGG_Class import ResetKeras
+from VGG_Class import VGG
+from VGG_Class import DataGen
+from VGG_Class import ResetKeras
 
 #%% Read Images
 
@@ -58,11 +58,11 @@ def sortedWalk(top, topdown=True, onerror=None):
 #size_patch = 28
 
 #UNet
-image_size = 256
+#image_size = 256
 
 #FCN_VGG
-#n_classes = 2
-#image_size = 128
+n_classes = 2
+image_size = 128
 
 #%% Get Data 
 
@@ -72,7 +72,7 @@ train_path = "../Datos/bus/"
 train_ids = next(sortedWalk(train_path))[2]
 
 #Set the data generator parameters
-gen = DataGen(train_ids, train_path) #LeNet
+#gen = DataGen(train_ids, train_path) #LeNet
 gen = DataGen(train_ids, train_path, image_size = image_size) #UNet, VGG
 
 #Read all images and its masks
@@ -99,13 +99,13 @@ for i in range(k):
     #%% train model
     
 #    arch = LeNet()
-    arch = UNet()
-#    arch = VGG()
+#    arch = UNet()
+    arch = VGG()
     
     #Create model
 #    model = arch.modelArch(size_patch=size_patch, n_classes=n_classes) #LeNet
-    model = arch.modelArch(image_size=image_size) #UNet
-#    model = arch.modelArch(n_classes=n_classes, image_size=image_size) #VGG
+#    model = arch.modelArch(image_size=image_size) #UNet
+    model = arch.modelArch(n_classes=n_classes, image_size=image_size) #VGG
     
     #compile model
     model = arch.compileModel(model=model)

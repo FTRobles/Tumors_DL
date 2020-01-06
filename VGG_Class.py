@@ -127,8 +127,24 @@ class VGG:
         
         return model
     
+    #Get segmentation map for each class
+    def getSegmentationMaps(self,mask_images,n_classes=2,image_size=128):
+        
+        segmentation_maps = []
+        
+        for i in range(np.size(mask_images,0)):
+            
+            seg_labels = np.zeros((image_size,image_size,n_classes))
+            
+            for c in range(n_classes):
+                seg_labels[: , : , c ] = (mask_images[i] == c ).astype(int)[:,:,0]
+        
+            segmentation_maps.append(seg_labels)
+            
+        return np.array(segmentation_maps)
+    
     #Train the defined model
-    def trainModel(self,train_images,train_masks,model,image_size=128,epochs=30,fold=0,augment=False,n_aug=5):
+    def trainModel(self,train_images,train_masks,model,image_size=128,n_classes=2,epochs=30,fold=0,augment=False,n_aug=5):
         
         shuffled_indices = np.arange(train_images.shape[0])
         np.random.shuffle(shuffled_indices)
@@ -145,19 +161,20 @@ class VGG:
         validation_tumors = shuffled_tumors[train_samples_count:train_samples_count+validation_samples_count]
         validation_masks = shuffled_masks[train_samples_count:train_samples_count+validation_samples_count]
         
+        # Define our augmentation pipeline.
+        seq = iaa.Sequential([
+            #iaa.Dropout([0.05, 0.2]),      # drop 5% or 20% of all pixels
+            #iaa.Sharpen((0.0, 1.0)),       # sharpen the image
+            iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects segmaps)
+            iaa.Affine(shear=(-45, 45)),
+            #iaa.ElasticTransformation(alpha=50, sigma=5)  # apply water effect (affects segmaps)
+        ], random_order=True)
+    
+        images_aug = train_images
+        masks_aug = train_masks
+        
         #Check if data augmentation is required
         if(augment):
-            # Define our augmentation pipeline.
-            seq = iaa.Sequential([
-                #iaa.Dropout([0.05, 0.2]),      # drop 5% or 20% of all pixels
-                #iaa.Sharpen((0.0, 1.0)),       # sharpen the image
-                iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects segmaps)
-                iaa.Affine(shear=(-45, 45)),
-                #iaa.ElasticTransformation(alpha=50, sigma=5)  # apply water effect (affects segmaps)
-            ], random_order=True)
-    
-            images_aug = train_images
-            masks_aug = train_masks
             
             #Augment n_augments per image
             for i in range(n_aug):
@@ -166,9 +183,9 @@ class VGG:
                 train_masks = np.concatenate((train_masks,masks_aug_i),axis=0)   
                 
         ## Normalizaing 
-#        train_images = train_images/255.0
-#        train_masks = train_masks/255.0
-        
+        train_images = train_images/255.0
+        train_masks = self.getSegmentationMaps(train_masks/255.0)
+
         #defining training paramenters
         #Number of evaluation images used in each batch
         batch_size = round(train_images.shape[0]*0.1)
@@ -235,23 +252,37 @@ class DataGen(keras.utils.Sequence):
         
         ## Reading Image
         image = cv2.imread(image_path, 1)
-        image = np.float32(cv2.resize(image, ( self.image_size , self.image_size ))) / 127.5
-#        image = cv2.imread(image_path, 0)
+        image = np.float32(cv2.resize(image, ( self.image_size , self.image_size ))) / 255
+#
+#        ## Reading Mask
+#        seg_labels = np.zeros((  self.image_size , self.image_size  , n_classes ))
+##        mask = cv2.imread(mask_path, 1)
+#        mask = cv2.imread(mask_path, 1)/255
+#        mask = cv2.resize(mask, (self.image_size , self.image_size ))
+#        mask = mask[:, : , 0]
+#
+#
+#        for c in range(n_classes):
+#            seg_labels[: , : , c ] = (mask == c ).astype(int)
+#
+#        
+#        return image, seg_labels
+        
+        ## Reading Image
+#        image = cv2.imread(image_path, 1)
 #        image = cv2.resize(image, (self.image_size, self.image_size))
-#        image = np.float32(cv2.cvtColor(image,cv2.COLOR_GRAY2RGB))
-
+#        image = cv2.cvtColor(image,cv2.COLOR_GRAY2RGB)
         
         ## Reading Mask
-        seg_labels = np.zeros((  self.image_size , self.image_size  , n_classes ))
-        mask = cv2.imread(mask_path, 1)/255
-        mask = cv2.resize(mask, (self.image_size , self.image_size ))
-        mask = mask[:, : , 0]
-
-        for c in range(n_classes):
-            seg_labels[: , : , c ] = (mask == c ).astype(int)
-
+        mask = cv2.imread(mask_path, 0)
+        mask = cv2.resize(mask, (self.image_size, self.image_size),interpolation=cv2.INTER_CUBIC)
+        mask = np.expand_dims(mask, axis=-1)
+            
+        # Normalizaing 
+#        image = image/255.0
+#        mask = mask/255.0
         
-        return image, seg_labels
+        return image.astype(np.uint8), mask.astype(np.uint8)
     
     def __load_all__(self):
         

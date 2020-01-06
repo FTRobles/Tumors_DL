@@ -106,19 +106,20 @@ class UNet:
         validation_tumors = shuffled_tumors[train_samples_count:train_samples_count+validation_samples_count]
         validation_masks = shuffled_masks[train_samples_count:train_samples_count+validation_samples_count]
         
+        # Define our augmentation pipeline.
+        seq = iaa.Sequential([
+            #iaa.Dropout([0.05, 0.2]),      # drop 5% or 20% of all pixels
+            #iaa.Sharpen((0.0, 1.0)),       # sharpen the image
+            iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects segmaps)
+            iaa.Affine(shear=(-45, 45)),
+            #iaa.ElasticTransformation(alpha=50, sigma=5)  # apply water effect (affects segmaps)
+            ], random_order=True)
+            
+        images_aug = train_images
+        masks_aug = train_masks
+            
         #Check if data augmentation is required
         if(augment):
-            # Define our augmentation pipeline.
-            seq = iaa.Sequential([
-                #iaa.Dropout([0.05, 0.2]),      # drop 5% or 20% of all pixels
-                #iaa.Sharpen((0.0, 1.0)),       # sharpen the image
-                iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects segmaps)
-                iaa.Affine(shear=(-45, 45)),
-                #iaa.ElasticTransformation(alpha=50, sigma=5)  # apply water effect (affects segmaps)
-            ], random_order=True)
-    
-            images_aug = train_images
-            masks_aug = train_masks
             
             #Augment n_augments per image
             for i in range(n_aug):

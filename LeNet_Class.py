@@ -185,6 +185,10 @@ class LeNet:
     #Train the defined model
     def trainModel(self,train_images,train_masks,model,size_patch=28,n_classes=2, epochs=5, fold=0):
         
+        ## Normalizaing 
+        train_images = train_images/255.0
+        train_masks = train_masks/255.0
+        
         #Extract patch data from training images
         data = np.zeros((1,size_patch,size_patch))
         classes = []
@@ -256,6 +260,9 @@ class LeNet:
     
         prob_images = []
         class_images = []
+                
+        ## Normalizaing 
+        images = images/255
         
         for image in images:
         
@@ -301,10 +308,10 @@ class DataGen(keras.utils.Sequence):
         mask = cv2.imread(mask_path, 0)
             
         ## Normalizaing 
-        image = image/255.0
-        mask = mask/255.0
+#        image = image/255.0
+#        mask = mask/255.0
         
-        return image, mask
+        return image.astype(np.uint8), mask.astype(np.uint8)
     
     def __load_all__(self):
         
@@ -318,6 +325,10 @@ class DataGen(keras.utils.Sequence):
             x, y = self.__load__(self.ids[i])
             tumor_images.append(x)
             mask_images.append(y)
+            
+        #Formating data into nedded model shapes
+        tumor_images = np.array(tumor_images)
+        mask_images = np.array(mask_images)
         
         return tumor_images, mask_images
     
