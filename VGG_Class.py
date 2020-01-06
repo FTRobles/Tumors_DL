@@ -5,16 +5,19 @@ Created on Wed Nov 20 14:06:58 2019
 @author: daewo
 """
 import os
-
 import numpy as np
-import cv2
 from datetime import datetime
+import gc
+
+import cv2
 
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.callbacks import TensorBoard
 
-import gc
+import imgaug.augmenters as iaa
+
+
 
 #%% Class to define UNet model architecture, parameters and functions
 class VGG:
@@ -36,13 +39,13 @@ class VGG:
         x = keras.layers.Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1', data_format=IMAGE_ORDERING )(img_input)
         x = keras.layers.Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2', data_format=IMAGE_ORDERING )(x)
         x = keras.layers.MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool', data_format=IMAGE_ORDERING )(x)
-        f1 = x
+#        f1 = x
         
         # Block 2
         x = keras.layers.Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1', data_format=IMAGE_ORDERING )(x)
         x = keras.layers.Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2', data_format=IMAGE_ORDERING )(x)
         x = keras.layers.MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool', data_format=IMAGE_ORDERING )(x)
-        f2 = x
+#        f2 = x
     
         # Block 3
         x = keras.layers.Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1', data_format=IMAGE_ORDERING )(x)
@@ -125,7 +128,7 @@ class VGG:
         return model
     
     #Train the defined model
-    def trainModel(self,train_images,train_masks,model,image_size=128,fold=0):
+    def trainModel(self,train_images,train_masks,model,image_size=128,epochs=30,fold=0,augment=False,n_aug=5):
         
         shuffled_indices = np.arange(train_images.shape[0])
         np.random.shuffle(shuffled_indices)
@@ -142,13 +145,34 @@ class VGG:
         validation_tumors = shuffled_tumors[train_samples_count:train_samples_count+validation_samples_count]
         validation_masks = shuffled_masks[train_samples_count:train_samples_count+validation_samples_count]
         
+        #Check if data augmentation is required
+        if(augment):
+            # Define our augmentation pipeline.
+            seq = iaa.Sequential([
+                #iaa.Dropout([0.05, 0.2]),      # drop 5% or 20% of all pixels
+                #iaa.Sharpen((0.0, 1.0)),       # sharpen the image
+                iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects segmaps)
+                iaa.Affine(shear=(-45, 45)),
+                #iaa.ElasticTransformation(alpha=50, sigma=5)  # apply water effect (affects segmaps)
+            ], random_order=True)
+    
+            images_aug = train_images
+            masks_aug = train_masks
+            
+            #Augment n_augments per image
+            for i in range(n_aug):
+                images_aug_i, masks_aug_i = seq(images = images_aug, segmentation_maps = masks_aug)
+                train_images = np.concatenate((train_images,images_aug_i),axis=0)
+                train_masks = np.concatenate((train_masks,masks_aug_i),axis=0)   
+                
+        ## Normalizaing 
+#        train_images = train_images/255.0
+#        train_masks = train_masks/255.0
         
         #defining training paramenters
         #Number of evaluation images used in each batch
         batch_size = round(train_images.shape[0]*0.1)
         
-        #Number of epochs to train
-        epochs = 30
         
         #Stop when the loss grows instead of diminish
         early_stopping = tf.keras.callbacks.EarlyStopping(patience=5) #To check overfitting

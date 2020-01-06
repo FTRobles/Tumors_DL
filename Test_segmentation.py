@@ -60,7 +60,7 @@ def sortedWalk(top, topdown=True, onerror=None):
 #size_patch = 28
 
 #UNet
-image_size = 128
+image_size = 256
 
 #FCN_VGG
 #n_classes = 2
@@ -134,8 +134,8 @@ for i in range(k):
 #    post_process.visualize(test_images,class_images,prob_images,save_path=results_path,fold=i,n_disp=1) #LeNet
     post_process.visualize(test_images[:,:,:,0],class_images,prob_images,save_path=results_path,fold=i,n_disp=5) #UNeT VGG
     
-    [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks,class_images,save_path=results_path,fold=i) #LeNet
-#   [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks[:,:,:,0],class_images,save_path=results_path,fold=i) #UNeT VGG
+#    [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks,class_images,save_path=results_path,fold=i) #LeNet
+    [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks[:,:,:,0],class_images,save_path=results_path,fold=i) #UNeT VGG
 
     accuracy.append(acc_fold[-1])
     sensitivity.append(sen_fold[-1])

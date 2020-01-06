@@ -27,7 +27,7 @@ class PostProcessing:
     def postProcessImage(self,class_image):
         
         #Structure for opening
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(15,15))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(1,1))
         
         #Opening image t clean it and soften the shapes
         open_image = cv2.morphologyEx(class_image.astype(np.uint8), cv2.MORPH_OPEN, kernel)
@@ -162,6 +162,8 @@ class PostProcessing:
     # Methods object visualization in image
     def createFig(self,n_objs, obj_imgs, probs, boxes, test_image):
         
+        test_image = test_image/255 
+        
         #Visualize objects
         fig, ax = plt.subplots(1,figsize = (9,8))
         
@@ -241,8 +243,9 @@ class PostProcessing:
                 plt.imsave(pprocess_filename, pprocess_image, cmap="gray")
             
             #get image objects 
-            [n_objs, obj_imgs, probs, boxes] = self.getRegions(test_image,pprocess_image,prob_image)
-            
+#            [n_objs, obj_imgs, probs, boxes] = self.getRegions(test_image,pprocess_image,prob_image) #LeNet
+            [n_objs, obj_imgs, probs, boxes] = self.getRegions(test_image,pprocess_image,prob_image) #UNet
+             
             if n_disp!=0:
                 if n_disp<n_objs:
                     n_objs = n_disp

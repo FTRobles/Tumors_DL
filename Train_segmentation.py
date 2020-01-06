@@ -58,7 +58,7 @@ def sortedWalk(top, topdown=True, onerror=None):
 #size_patch = 28
 
 #UNet
-image_size = 128
+image_size = 256
 
 #FCN_VGG
 #n_classes = 2
@@ -112,7 +112,7 @@ for i in range(k):
     
 #    train model
 #    model = arch.trainModel(train_images,train_masks,model,size_patch,epochs=100,fold=i) #LeNet
-    model = arch.trainModel(train_images,train_masks,model,image_size=image_size,epochs=100,fold=i) #UNet, VGG
+    model = arch.trainModel(train_images,train_masks,model,image_size=image_size,epochs=100,fold=i,augment=True,n_aug=6) #UNet, VGG
 
     
     ResetKeras(model)

@@ -7,23 +7,17 @@ Created on Wed Nov 20 14:06:58 2019
 import os
 from datetime import datetime
 import gc
-import imageio
-from random import randint
 
 import numpy as np
 
 import cv2
 
-import matplotlib.pyplot as plt
-
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.callbacks import TensorBoard
-#from tensorflow.keras.preprocessing.image import ImageDataGenerator 
 
-import imgaug as ia
 import imgaug.augmenters as iaa
-from imgaug.augmentables.segmaps import SegmentationMapOnImage
+
 
 #%% Class to define UNet model architecture, parameters and functions
 class UNet:
@@ -95,7 +89,7 @@ class UNet:
         return model
     
     #Train the defined model
-    def trainModel(self,train_images,train_masks,model,image_size=128,epochs=30,fold=0):
+    def trainModel(self,train_images,train_masks,model,image_size=128,epochs=30,fold=0,augment=False,n_aug=5):
         
         shuffled_indices = np.arange(train_images.shape[0])
         np.random.shuffle(shuffled_indices)
@@ -112,26 +106,29 @@ class UNet:
         validation_tumors = shuffled_tumors[train_samples_count:train_samples_count+validation_samples_count]
         validation_masks = shuffled_masks[train_samples_count:train_samples_count+validation_samples_count]
         
-        # Define our augmentation pipeline.
-        seq = iaa.Sequential([
-#            iaa.Dropout([0.05, 0.2]),      # drop 5% or 20% of all pixels
-#            iaa.Sharpen((0.0, 1.0)),       # sharpen the image
-            iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects segmaps)
-            iaa.Affine(shear=(-45, 45)),
-#            iaa.ElasticTransformation(alpha=50, sigma=5)  # apply water effect (affects segmaps)
-        ], random_order=True)
+        #Check if data augmentation is required
+        if(augment):
+            # Define our augmentation pipeline.
+            seq = iaa.Sequential([
+                #iaa.Dropout([0.05, 0.2]),      # drop 5% or 20% of all pixels
+                #iaa.Sharpen((0.0, 1.0)),       # sharpen the image
+                iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects segmaps)
+                iaa.Affine(shear=(-45, 45)),
+                #iaa.ElasticTransformation(alpha=50, sigma=5)  # apply water effect (affects segmaps)
+            ], random_order=True)
     
-        # Augment images and segmaps.
-#        train_images = (train_images*255).astype(np.uint8)
-#        train_masks = train_masks.astype(np.uint8)
-        
-        images_aug = train_images
-        masks_aug = train_masks
-        
-        for i in range(5):
-            images_aug_i, masks_aug_i = seq(images = images_aug, segmentation_maps = masks_aug)
-            train_images = np.concatenate((train_images,images_aug_i),axis=0)
-            train_masks = np.concatenate((train_masks,masks_aug_i),axis=0)   
+            images_aug = train_images
+            masks_aug = train_masks
+            
+            #Augment n_augments per image
+            for i in range(n_aug):
+                images_aug_i, masks_aug_i = seq(images = images_aug, segmentation_maps = masks_aug)
+                train_images = np.concatenate((train_images,images_aug_i),axis=0)
+                train_masks = np.concatenate((train_masks,masks_aug_i),axis=0)   
+                
+        ## Normalizaing 
+        train_images = train_images/255.0
+        train_masks = train_masks/255.0
         
         #defining training paramenters
         #Number of evaluation images used in each batch
@@ -144,9 +141,7 @@ class UNet:
         logdir = os.path.join("..","Resultados","UNet","logs","fit",datetime.now().strftime("%Y%m%d-%H%M%S"))
         tensorboard_callback = TensorBoard(log_dir=logdir)
         
-        ## Normalizaing 
-        train_images = train_images/255.0
-        train_masks = train_masks/255.0
+
         
 #        #Train the model
         print("Training fold: " + str(fold))   
