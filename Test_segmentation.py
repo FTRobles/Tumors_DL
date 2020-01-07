@@ -9,17 +9,17 @@ import math
 
 import numpy as np
 
-from LeNet_Class import LeNet
-from LeNet_Class import DataGen
-from LeNet_Class import ResetKeras
+#from LeNet_Class import LeNet
+#from LeNet_Class import DataGen
+#from LeNet_Class import ResetKeras
 
 #from UNet_Class import UNet
 #from UNet_Class import DataGen
 #from UNet_Class import ResetKeras
 
-#from VGG_Class import VGG
-#from VGG_Class import DataGen
-#from VGG_Class import ResetKeras
+from VGG_Class import VGG
+from VGG_Class import DataGen
+from VGG_Class import ResetKeras
 
 from PostProcessing_Class import PostProcessing
 
@@ -56,15 +56,15 @@ def sortedWalk(top, topdown=True, onerror=None):
 #%% Define paramenters
 
 #LeNet
-n_classes = 2
-size_patch = 28
+#n_classes = 2
+#size_patch = 28
 
 #UNet
-#image_size = 256
+#image_size = 128
 
 #FCN_VGG
-#n_classes = 2
-#image_size = 128
+n_classes = 2
+image_size = 256
 
 #%% Get Data 
 
@@ -74,8 +74,8 @@ train_path = "../Datos/bus/"
 train_ids = next(sortedWalk(train_path))[2]
 
 #Set the data generator parameters
-gen = DataGen(train_ids, train_path) #LeNet
-#gen = DataGen(train_ids, train_path, image_size = image_size) #UNet, VGG
+#gen = DataGen(train_ids, train_path) #LeNet
+gen = DataGen(train_ids, train_path, image_size = image_size) #UNet, VGG
 
 #Read all images and its masks
 [tumor_images, mask_images] = gen.__load_all__()
@@ -106,37 +106,37 @@ for i in range(k):
     
 
     
-    arch = LeNet()
+#    arch = LeNet()
 #    arch = UNet()
-#    arch = VGG()
+    arch = VGG()
     
     #Create model
-    model = arch.modelArch(size_patch=size_patch, n_classes=n_classes) #LeNet
+#    model = arch.modelArch(size_patch=size_patch, n_classes=n_classes) #LeNet
 #    model = arch.modelArch(image_size=image_size) #UNet
-#    model = arch.modelArch(n_classes=n_classes, image_size=image_size) #VGG
+    model = arch.modelArch(n_classes=n_classes, image_size=image_size) #VGG
     arch.compileModel(model)
     results_path = arch.results_path
     
     #Load saved weights for fold
-    train_file = "LeNet_Weights_fold_" + str(i) + ".h5"
+#    train_file = "LeNet_Weights_fold_" + str(i) + ".h5"
 #    train_file = "UNet_Weights_fold_" + str(i) + ".h5"
-#    train_file = "VGG_Weights_fold_" + str(i) + ".h5"
+    train_file = "VGG_Weights_fold_" + str(i) + ".h5"
     train_dir = os.path.join(results_path,"train_weights",train_file)
     model.load_weights(train_dir)
     
     #Predict the probability of each pixel
-    [prob_images, class_images] = arch.predictClassModel(test_images,model=model,size_patch=size_patch) #LeNet
-#    [prob_images, class_images] = arch.predictClassModel(test_images,model=model,image_size=image_size) #UNet, VGG
+#    [prob_images, class_images] = arch.predictClassModel(test_images,model=model,size_patch=size_patch) #LeNet
+    [prob_images, class_images] = arch.predictClassModel(test_images,model=model,image_size=image_size) #UNet, VGG
     
     #Visualize and evaluate predictions
     post_process = PostProcessing()
     
-    post_process.visualize(test_images,class_images,prob_images,save_path=results_path,fold=i,n_disp=1) #LeNet
-#    post_process.visualize(test_images[:,:,:,0],class_images,prob_images,save_path=results_path,fold=i,n_disp=5) #UNeT VGG
+#    post_process.visualize(test_images,class_images,prob_images,save_path=results_path,fold=i,n_disp=1) #LeNet
+    post_process.visualize(test_images[:,:,:,0],class_images,prob_images,save_path=results_path,fold=i,n_disp=5) #UNeT VGG
     
-    [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks,class_images,save_path=results_path,fold=i) #LeNet
-#    [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks[:,:,:,0],class_images,save_path=results_path,fold=i) #UNeT VGG
-
+#    [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks,class_images,save_path=results_path,fold=i) #LeNet
+    [acc_fold,sen_fold,spec_fold,auc_fold] = post_process.evaluateSegmentation(test_masks[:,:,:,0],class_images,save_path=results_path,fold=i) #UNeT VGG
+#
     accuracy.append(acc_fold[-1])
     sensitivity.append(sen_fold[-1])
     specificity.append(spec_fold[-1])

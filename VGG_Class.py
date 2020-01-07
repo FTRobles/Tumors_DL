@@ -137,7 +137,7 @@ class VGG:
             seg_labels = np.zeros((image_size,image_size,n_classes))
             
             for c in range(n_classes):
-                seg_labels[: , : , c ] = (mask_images[i] == c ).astype(int)[:,:,0]
+                seg_labels[: , : , c ] = (mask_images[i,:,:,0] == c).astype(int)
         
             segmentation_maps.append(seg_labels)
             
@@ -158,7 +158,7 @@ class VGG:
     
         train_images = shuffled_tumors[:train_samples_count]
         train_masks = shuffled_masks[:train_samples_count]
-        validation_tumors = shuffled_tumors[train_samples_count:train_samples_count+validation_samples_count]
+        validation_images = shuffled_tumors[train_samples_count:train_samples_count+validation_samples_count]
         validation_masks = shuffled_masks[train_samples_count:train_samples_count+validation_samples_count]
         
         # Define our augmentation pipeline.
@@ -184,7 +184,10 @@ class VGG:
                 
         ## Normalizaing 
         train_images = train_images/255.0
-        train_masks = self.getSegmentationMaps(train_masks/255.0)
+        train_masks = self.getSegmentationMaps(train_masks/255.0,image_size=image_size)
+        
+        validation_images = validation_images/255.0
+        validation_masks = self.getSegmentationMaps(validation_masks/255.0,image_size=image_size)
 
         #defining training paramenters
         #Number of evaluation images used in each batch
@@ -192,18 +195,19 @@ class VGG:
         
         
         #Stop when the loss grows instead of diminish
-        early_stopping = tf.keras.callbacks.EarlyStopping(patience=5) #To check overfitting
+        early_stopping = tf.keras.callbacks.EarlyStopping(patience=10) #To check overfitting
         
         #Tensorboard 
         logdir = os.path.join("..","Resultados","FCN_VGG","logs","fit",datetime.now().strftime("%Y%m%d-%H%M%S"))
         tensorboard_callback = TensorBoard(log_dir=logdir)
         
         #Train the model
+        print("Training fold: " + str(fold))  
         model.fit(train_images,train_masks,
                              batch_size = batch_size,
                              epochs = epochs,
                              callbacks=[early_stopping,tensorboard_callback],
-                             validation_data = (validation_tumors,validation_masks),
+                             validation_data = (validation_images,validation_masks),
                              verbose = 1)
     
         train_file = "VGG_Weights_fold_" + str(fold) + ".h5"
@@ -217,6 +221,9 @@ class VGG:
     
         prob_images = []
         class_images = []
+        
+        ## Normalizaing 
+        images = images/255
         
         for image in images:
             
@@ -256,7 +263,7 @@ class DataGen(keras.utils.Sequence):
 #
 #        ## Reading Mask
 #        seg_labels = np.zeros((  self.image_size , self.image_size  , n_classes ))
-##        mask = cv2.imread(mask_path, 1)
+#        mask = cv2.imread(mask_path, 1)
 #        mask = cv2.imread(mask_path, 1)/255
 #        mask = cv2.resize(mask, (self.image_size , self.image_size ))
 #        mask = mask[:, : , 0]

@@ -103,7 +103,7 @@ class UNet:
     
         train_images = shuffled_tumors[:train_samples_count]
         train_masks = shuffled_masks[:train_samples_count]
-        validation_tumors = shuffled_tumors[train_samples_count:train_samples_count+validation_samples_count]
+        validation_images = shuffled_tumors[train_samples_count:train_samples_count+validation_samples_count]
         validation_masks = shuffled_masks[train_samples_count:train_samples_count+validation_samples_count]
         
         # Define our augmentation pipeline.
@@ -112,6 +112,7 @@ class UNet:
             #iaa.Sharpen((0.0, 1.0)),       # sharpen the image
             iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects segmaps)
             iaa.Affine(shear=(-45, 45)),
+            iaa.Affine(scale=(0.6,1))
             #iaa.ElasticTransformation(alpha=50, sigma=5)  # apply water effect (affects segmaps)
             ], random_order=True)
             
@@ -130,6 +131,9 @@ class UNet:
         ## Normalizaing 
         train_images = train_images/255.0
         train_masks = train_masks/255.0
+        
+        validation_images = validation_images/255.0
+        validation_masks = validation_masks/255.0
         
         #defining training paramenters
         #Number of evaluation images used in each batch
@@ -150,7 +154,7 @@ class UNet:
                              batch_size = batch_size,
                              epochs = epochs,
                              callbacks=[tensorboard_callback],
-                             validation_data = (validation_tumors,validation_masks),
+                             validation_data = (validation_images,validation_masks),
                              verbose = 1)        
         
         train_file = "UNet_Weights_fold_" + str(fold) + ".h5"
