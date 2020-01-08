@@ -67,8 +67,8 @@ n_classes = 2
 image_size = 256
 
 #%% Get Data 
-
-train_path = "../Datos/bus/"
+#train_path = "../Datos/bus/"
+train_path = "../Datos/Img/"
 
 #Get the images file name
 train_ids = next(sortedWalk(train_path))[2]
@@ -82,7 +82,7 @@ gen = DataGen(train_ids, train_path, image_size = image_size) #UNet, VGG
 #%% Cross validation K-fold
 
 n_imgs = len(tumor_images)
-k = 30
+k = 10
 n_test_imgs = math.floor(n_imgs/k)
 
 accuracy = []

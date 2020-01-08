@@ -62,7 +62,7 @@ def sortedWalk(top, topdown=True, onerror=None):
 
 #FCN_VGG
 n_classes = 2
-image_size = 256
+image_size = 128
 
 #%% Get Data 
 #train_path = "../Datos/bus/"
@@ -81,7 +81,7 @@ gen = DataGen(train_ids, train_path, image_size = image_size) #UNet, VGG
 #%% Cross validation K-fold
 
 n_imgs = len(tumor_images)
-k = 30
+k = 10
 n_test_imgs = math.floor(n_imgs/k)
 
 for i in range(k):
@@ -112,7 +112,7 @@ for i in range(k):
     
 #    train model
 #    model = arch.trainModel(train_images,train_masks,model,size_patch,epochs=100,fold=i) #LeNet
-    model = arch.trainModel(train_images,train_masks,model,image_size=image_size,epochs=100,fold=i,augment=False,n_aug=20) #UNet, VGG
+    model = arch.trainModel(train_images,train_masks,model,image_size=image_size,epochs=100,fold=i,augment=True,n_aug=5) #UNet, VGG
 
     
     ResetKeras(model)

@@ -181,8 +181,8 @@ class VGG:
                 images_aug_i, masks_aug_i = seq(images = images_aug, segmentation_maps = masks_aug)
                 train_images = np.concatenate((train_images,images_aug_i),axis=0)
                 train_masks = np.concatenate((train_masks,masks_aug_i),axis=0)   
-                
-        ## Normalizaing 
+#                
+#        ## Normalizaing 
         train_images = train_images/255.0
         train_masks = self.getSegmentationMaps(train_masks/255.0,image_size=image_size)
         
@@ -258,17 +258,17 @@ class DataGen(keras.utils.Sequence):
         mask_path = os.path.join(self.path,"Mask/",id_name)
         
         ## Reading Image
-        image = cv2.imread(image_path, 1)
-        image = np.float32(cv2.resize(image, ( self.image_size , self.image_size ))) / 255
-#
-#        ## Reading Mask
+#        image = cv2.imread(image_path, 1)
+#        image = np.float32(cv2.resize(image, ( self.image_size , self.image_size ))) /127.5
+
+        ## Reading Mask
 #        seg_labels = np.zeros((  self.image_size , self.image_size  , n_classes ))
 #        mask = cv2.imread(mask_path, 1)
 #        mask = cv2.imread(mask_path, 1)/255
 #        mask = cv2.resize(mask, (self.image_size , self.image_size ))
 #        mask = mask[:, : , 0]
-#
-#
+
+
 #        for c in range(n_classes):
 #            seg_labels[: , : , c ] = (mask == c ).astype(int)
 #
@@ -276,9 +276,9 @@ class DataGen(keras.utils.Sequence):
 #        return image, seg_labels
         
         ## Reading Image
-#        image = cv2.imread(image_path, 1)
-#        image = cv2.resize(image, (self.image_size, self.image_size))
-#        image = cv2.cvtColor(image,cv2.COLOR_GRAY2RGB)
+        image = cv2.imread(image_path, 0)
+        image = cv2.resize(image, (self.image_size, self.image_size))
+        image = cv2.cvtColor(image,cv2.COLOR_GRAY2RGB)
         
         ## Reading Mask
         mask = cv2.imread(mask_path, 0)
