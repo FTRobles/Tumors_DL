@@ -7,11 +7,10 @@ Implemented Tools:
 
 - Open 2D images
 - Segments images using a CNN
+    - LENET (Pathced based segmentation)
     - VGG
     - UNET
-    - Mask RCNN
-- Interactive 3D Slicer for 2D visualization
-- Ineractive tools for 3D rendering
+- Validation using accuracy, recall and sensitivity
 
 ## Installation
 
@@ -21,10 +20,11 @@ The develop of this tool was made on [Anaconda](https://www.anaconda.com), so is
 
 |NAME|VERSION|
 |:---:|:---:|
-|vtk|9.0.1|
-|pydicom|1.3.0|
-|pillow|7.0.0|
-|PyQt|5.12.3|
+|open_cv|4.1.2|
+|tensorflow|2.1.0|
+|keras|2.3.1|
+|SK-Learn|0.24.1|
+|Matplotlib|3.1.3|
 
 __NOTE: Use python 3.7 or below__
 
@@ -39,9 +39,11 @@ Using pip from terminal:
 
 ~~~bash
 conda create --name NEW_ENV python==3.7
-pip install pydicom==1.3.0
-pip install pillow==7.0.0
-pip install vtk
+conda install tensorflow==2.1.0
+conda install keras==2.3.1
+pip install opencv-python==4.1.2
+pip isntall scikit-learn==0.24.1
+pip install matplotlib==3.1.3
 ~~~
 
 
